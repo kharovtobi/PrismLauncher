@@ -95,7 +95,7 @@ void FlameTexturePackModel::loadIndexedPackVersions(ModPlatform::IndexedPack& m,
 {
     FlameMod::loadIndexedPackVersions(m, arr);
 
-    QVector<ModPlatform::IndexedVersion> filtered_versions(m.versions.size());
+    QList<ModPlatform::IndexedVersion> filtered_versions(m.versions.size());
 
     // FIXME: Client-side version filtering. This won't take into account any user-selected filtering.
     for (auto const& version : m.versions) {
@@ -122,7 +122,7 @@ ResourceAPI::SearchArgs FlameTexturePackModel::createSearchArguments()
     return args;
 }
 
-ResourceAPI::VersionSearchArgs FlameTexturePackModel::createVersionsArguments(QModelIndex& entry)
+ResourceAPI::VersionSearchArgs FlameTexturePackModel::createVersionsArguments(const QModelIndex& entry)
 {
     auto args = TexturePackResourceModel::createVersionsArguments(entry);
 
@@ -166,6 +166,34 @@ bool FlameShaderPackModel::optedOut(const ModPlatform::IndexedVersion& ver) cons
 }
 
 auto FlameShaderPackModel::documentToArray(QJsonDocument& obj) const -> QJsonArray
+{
+    return Json::ensureArray(obj.object(), "data");
+}
+
+FlameDataPackModel::FlameDataPackModel(const BaseInstance& base) : DataPackResourceModel(base, new FlameAPI) {}
+
+void FlameDataPackModel::loadIndexedPack(ModPlatform::IndexedPack& m, QJsonObject& obj)
+{
+    FlameMod::loadIndexedPack(m, obj);
+}
+
+// We already deal with the URLs when initializing the pack, due to the API response's structure
+void FlameDataPackModel::loadExtraPackInfo(ModPlatform::IndexedPack& m, QJsonObject& obj)
+{
+    FlameMod::loadBody(m, obj);
+}
+
+void FlameDataPackModel::loadIndexedPackVersions(ModPlatform::IndexedPack& m, QJsonArray& arr)
+{
+    FlameMod::loadIndexedPackVersions(m, arr);
+}
+
+bool FlameDataPackModel::optedOut(const ModPlatform::IndexedVersion& ver) const
+{
+    return isOptedOut(ver);
+}
+
+auto FlameDataPackModel::documentToArray(QJsonDocument& obj) const -> QJsonArray
 {
     return Json::ensureArray(obj.object(), "data");
 }

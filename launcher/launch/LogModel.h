@@ -31,6 +31,8 @@ class LogModel : public QAbstractListModel {
     void setColorLines(bool state);
     bool colorLines() const;
 
+    MessageLevel::Enum previousLevel();
+
     enum Roles { LevelRole = Qt::UserRole };
 
    private /* types */:
@@ -40,7 +42,7 @@ class LogModel : public QAbstractListModel {
     };
 
    private: /* data */
-    QVector<entry> m_content;
+    QList<entry> m_content;
     int m_maxLines = 1000;
     // first line in the circular buffer
     int m_firstLine = 0;

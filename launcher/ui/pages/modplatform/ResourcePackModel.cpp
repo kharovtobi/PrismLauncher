@@ -17,16 +17,16 @@ ResourcePackResourceModel::ResourcePackResourceModel(BaseInstance const& base_in
 ResourceAPI::SearchArgs ResourcePackResourceModel::createSearchArguments()
 {
     auto sort = getCurrentSortingMethodByIndex();
-    return { ModPlatform::ResourceType::RESOURCE_PACK, m_next_search_offset, m_search_term, sort };
+    return { ModPlatform::ResourceType::ResourcePack, m_next_search_offset, m_search_term, sort };
 }
 
-ResourceAPI::VersionSearchArgs ResourcePackResourceModel::createVersionsArguments(QModelIndex& entry)
+ResourceAPI::VersionSearchArgs ResourcePackResourceModel::createVersionsArguments(const QModelIndex& entry)
 {
     auto& pack = m_packs[entry.row()];
     return { *pack };
 }
 
-ResourceAPI::ProjectInfoArgs ResourcePackResourceModel::createInfoArguments(QModelIndex& entry)
+ResourceAPI::ProjectInfoArgs ResourcePackResourceModel::createInfoArguments(const QModelIndex& entry)
 {
     auto& pack = m_packs[entry.row()];
     return { *pack };

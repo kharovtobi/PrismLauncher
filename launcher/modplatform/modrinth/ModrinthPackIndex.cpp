@@ -63,11 +63,11 @@ void Modrinth::loadIndexedPack(ModPlatform::IndexedPack& pack, QJsonObject& obj)
     auto server = shouldDownloadOnSide(Json::ensureString(obj, "server_side"));
 
     if (server && client) {
-        pack.side = "both";
+        pack.side = ModPlatform::Side::UniversalSide;
     } else if (server) {
-        pack.side = "server";
+        pack.side = ModPlatform::Side::ServerSide;
     } else if (client) {
-        pack.side = "client";
+        pack.side = ModPlatform::Side::ClientSide;
     }
 
     // Modrinth can have more data than what's provided by the basic search :)
@@ -114,7 +114,7 @@ void Modrinth::loadExtraPackData(ModPlatform::IndexedPack& pack, QJsonObject& ob
 
 void Modrinth::loadIndexedPackVersions(ModPlatform::IndexedPack& pack, QJsonArray& arr)
 {
-    QVector<ModPlatform::IndexedVersion> unsortedVersions;
+    QList<ModPlatform::IndexedVersion> unsortedVersions;
     for (auto versionIter : arr) {
         auto obj = versionIter.toObject();
         auto file = loadIndexedPackVersion(obj);
@@ -253,7 +253,7 @@ ModPlatform::IndexedVersion Modrinth::loadDependencyVersions([[maybe_unused]] co
     QString mcVersion = profile->getComponentVersion("net.minecraft");
     auto loaders = profile->getSupportedModLoaders();
 
-    QVector<ModPlatform::IndexedVersion> versions;
+    QList<ModPlatform::IndexedVersion> versions;
     for (auto versionIter : arr) {
         auto obj = versionIter.toObject();
         auto file = loadIndexedPackVersion(obj);

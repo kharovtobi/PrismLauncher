@@ -40,11 +40,11 @@ class DummyResourceModel : public ResourceModel {
     DummyResourceModel() : ResourceModel(new DummyResourceAPI) {}
     ~DummyResourceModel() {}
 
-    [[nodiscard]] auto metaEntryBase() const -> QString override { return ""; }
+    auto metaEntryBase() const -> QString override { return ""; }
 
     ResourceAPI::SearchArgs createSearchArguments() override { return {}; }
-    ResourceAPI::VersionSearchArgs createVersionsArguments(QModelIndex&) override { return {}; }
-    ResourceAPI::ProjectInfoArgs createInfoArguments(QModelIndex&) override { return {}; }
+    ResourceAPI::VersionSearchArgs createVersionsArguments(const QModelIndex&) override { return {}; }
+    ResourceAPI::ProjectInfoArgs createInfoArguments(const QModelIndex&) override { return {}; }
 
     QJsonArray documentToArray(QJsonDocument& doc) const override { return doc.object().value("hits").toArray(); }
 

@@ -182,7 +182,8 @@ void LaunchController::login()
             auto name = askOfflineName("Player", m_demo, ok);
             if (ok) {
                 m_session = std::make_shared<AuthSession>();
-                m_session->MakeDemo(name, MinecraftAccount::uuidFromUsername(name).toString().remove(QRegularExpression("[{}-]")));
+                static const QRegularExpression s_removeChars("[{}-]");
+                m_session->MakeDemo(name, MinecraftAccount::uuidFromUsername(name).toString().remove(s_removeChars));
                 launchInstance();
                 return;
             }
@@ -199,7 +200,7 @@ void LaunchController::login()
     if ((m_accountToUse->accountType() != AccountType::Offline && m_accountToUse->accountState() == AccountState::Offline) ||
         m_accountToUse->shouldRefresh()) {
         // Force account refresh on the account used to launch the instance updating the AccountState
-        //  only on first try and if it is not meant to be offline
+        // only on first try and if it is not meant to be offline
         m_accountToUse->refresh();
     }
     while (tryagain) {
@@ -295,11 +296,15 @@ void LaunchController::login()
             case AccountState::Working: {
                 // refresh is in progress, we need to wait for it to finish to proceed.
                 ProgressDialog progDialog(m_parentWidget);
-                if (m_online) {
-                    progDialog.setSkipButton(true, tr("Play Offline"));
-                }
+                progDialog.setSkipButton(true, tr("Abort"));
+
                 auto task = accountToCheck->currentTask();
                 progDialog.execWithTask(task.get());
+
+                // don't retry if aborted
+                if (task->getState() == Task::State::AbortedByUser)
+                    tryagain = false;
+
                 continue;
             }
             case AccountState::Expired: {

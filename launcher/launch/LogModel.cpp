@@ -100,7 +100,7 @@ void LogModel::setMaxLines(int maxLines)
         return;
     }
     // otherwise, we need to reorganize the data because it crosses the wrap boundary
-    QVector<entry> newContent;
+    QList<entry> newContent;
     newContent.resize(maxLines);
     if (m_numLines <= maxLines) {
         // if it all fits in the new buffer, just copy it over
@@ -165,4 +165,12 @@ bool LogModel::colorLines() const
 bool LogModel::isOverFlow()
 {
     return m_numLines >= m_maxLines && m_stopOnOverflow;
+}
+
+MessageLevel::Enum LogModel::previousLevel()
+{
+    if (!m_content.isEmpty()) {
+        return m_content.last().level;
+    }
+    return MessageLevel::Unknown;
 }

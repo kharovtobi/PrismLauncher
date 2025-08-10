@@ -72,7 +72,8 @@ ApplicationId ApplicationId::fromTraditionalApp()
     protoId = protoId.toLower();
 #endif
     auto prefix = protoId.section(QLatin1Char('/'), -1);
-    prefix.remove(QRegularExpression("[^a-zA-Z]"));
+    static const QRegularExpression s_removeChars("[^a-zA-Z]");
+    prefix.remove(s_removeChars);
     prefix.truncate(6);
     QByteArray idc = protoId.toUtf8();
     quint16 idNum = qChecksum(idc);
@@ -145,7 +146,7 @@ bool LocalPeer::isClient()
 #endif
     if (!res)
         qWarning("QtSingleCoreApplication: listen on local socket failed, %s", qPrintable(server->errorString()));
-    QObject::connect(server.get(), SIGNAL(newConnection()), SLOT(receiveConnection()));
+    connect(server.get(), &QLocalServer::newConnection, this, &LocalPeer::receiveConnection);
     return false;
 }
 

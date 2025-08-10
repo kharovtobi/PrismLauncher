@@ -82,7 +82,7 @@ class ModrinthPage : public QWidget, public ModpackProviderBasePage {
     /** Programatically set the term in the search bar. */
     virtual void setSearchTerm(QString) override;
     /** Get the current term in the search bar. */
-    [[nodiscard]] virtual QString getSerachTerm() const override;
+    virtual QString getSerachTerm() const override;
 
    private slots:
     void onSelectionChanged(QModelIndex first, QModelIndex second);
@@ -103,6 +103,6 @@ class ModrinthPage : public QWidget, public ModpackProviderBasePage {
     // Used to do instant searching with a delay to cache quick changes
     QTimer m_search_timer;
 
-    unique_qobject_ptr<ModFilterWidget> m_filterWidget;
+    std::unique_ptr<ModFilterWidget> m_filterWidget;
     Task::Ptr m_categoriesTask;
 };

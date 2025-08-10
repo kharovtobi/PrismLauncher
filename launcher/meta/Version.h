@@ -19,8 +19,8 @@
 #include "BaseVersion.h"
 
 #include <QJsonObject>
+#include <QList>
 #include <QStringList>
-#include <QVector>
 #include <memory>
 
 #include "minecraft/VersionFile.h"
@@ -60,7 +60,7 @@ class Version : public QObject, public BaseVersion, public BaseEntity {
 
     QString localFilename() const override;
 
-    [[nodiscard]] ::Version toComparableVersion() const;
+    ::Version toComparableVersion() const;
 
    public:  // for usage by format parsers only
     void setType(const QString& type);

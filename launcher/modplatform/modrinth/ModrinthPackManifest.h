@@ -40,10 +40,10 @@
 
 #include <QByteArray>
 #include <QCryptographicHash>
+#include <QList>
 #include <QQueue>
 #include <QString>
 #include <QUrl>
-#include <QVector>
 
 #include "modplatform/ModIndex.h"
 
@@ -110,7 +110,7 @@ struct Modpack {
     bool extraInfoLoaded = false;
 
     ModpackExtra extra;
-    QVector<ModpackVersion> versions;
+    QList<ModpackVersion> versions;
 };
 
 void loadIndexedPack(Modpack&, QJsonObject&);
@@ -120,7 +120,10 @@ auto loadIndexedVersion(QJsonObject&) -> ModpackVersion;
 
 auto validateDownloadUrl(QUrl) -> bool;
 
+auto getVersionDisplayString(const ModpackVersion&) -> QString;
+
 }  // namespace Modrinth
 
 Q_DECLARE_METATYPE(Modrinth::Modpack)
 Q_DECLARE_METATYPE(Modrinth::ModpackVersion)
+Q_DECLARE_METATYPE(QList<Modrinth::ModpackVersion>)
