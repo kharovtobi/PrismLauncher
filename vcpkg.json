@@ -1,9 +1,25 @@
 {
   "dependencies": [
-    "bzip2",
     "cmark",
-    { "name": "ecm", "host": true },
-    { "name": "pkgconf", "host": true },
+    {
+      "name": "ecm",
+      "host": true
+    },
+    {
+      "name": "libarchive",
+      "default-features": false,
+      "features": [
+        "bzip2",
+        "lz4",
+        "lzma",
+        "lzo",
+        "zstd"
+      ]
+    },
+    {
+      "name": "libqrencode",
+      "default-features": false
+    },
     "tomlplusplus",
     "zlib"
   ]

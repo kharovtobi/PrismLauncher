@@ -43,7 +43,11 @@
 #include <QtMath>
 #include <utility>
 
+#include "Application.h"
+
+#include "InstanceList.h"
 #include "InstanceView.h"
+#include "icons/IconList.h"
 
 VisualGroup::VisualGroup(QString text, InstanceView* view) : view(view), text(std::move(text)), collapsed(false) {}
 
@@ -141,6 +145,9 @@ VisualGroup::HitResults VisualGroup::hitScan(const QPoint& pos) const
 
 void VisualGroup::drawHeader(QPainter* painter, const QStyleOptionViewItem& option) const
 {
+    const QString& iconKey = APPLICATION->instances()->getGroupIconKey(text);
+    bool hasIcon = !iconKey.isEmpty();
+
     QRect optRect = option.rect;
     optRect.setTop(optRect.top() + 7);
     QFont font(QApplication::font());
@@ -151,15 +158,17 @@ void VisualGroup::drawHeader(QPainter* painter, const QStyleOptionViewItem& opti
     QPen pen;
     pen.setWidth(2);
     QColor penColor = option.palette.text().color();
-    penColor.setAlphaF(0.6);
+    penColor.setAlphaF(0.6f);
     pen.setColor(penColor);
     painter->setPen(pen);
     painter->setRenderHint(QPainter::Antialiasing);
 
     // sizes and offsets, to keep things consistent below
     const int arrowOffsetLeft = fontMetrics.height() / 2 + 7;
-    const int textOffsetLeft = arrowOffsetLeft * 2;
+    const int iconOffsetLeft = arrowOffsetLeft * 2;
+    const int textOffsetLeft = hasIcon ? iconOffsetLeft * 2 - fontMetrics.height() / 2 : iconOffsetLeft;
     const int centerHeight = optRect.top() + fontMetrics.height() / 2;
+    const int iconSize = fontMetrics.height() * 1.2;
     const QString& textToDraw = text.isEmpty() ? QObject::tr("Ungrouped") : text;
 
     // BEGIN: arrow
@@ -180,6 +189,23 @@ void VisualGroup::drawHeader(QPainter* painter, const QStyleOptionViewItem& opti
     }
     // END: arrow
 
+    // BEGIN: icon
+    if (hasIcon) {
+        QRect iconRect(optRect);
+
+        iconRect.setTop(iconRect.top());
+        iconRect.setLeft(iconOffsetLeft);
+        iconRect.setHeight(iconSize);
+        iconRect.setWidth(iconSize);
+
+        iconRect.moveLeft(iconOffsetLeft);
+        iconRect.moveTop(centerHeight - iconSize / 2);
+
+        QIcon icon = APPLICATION->icons()->getIcon(iconKey);
+        icon.paint(painter, iconRect, Qt::AlignLeft | Qt::AlignVCenter);
+    }
+    // END: icon
+
     // BEGIN: text
     {
         QRect textRect(optRect);
@@ -194,12 +220,12 @@ void VisualGroup::drawHeader(QPainter* painter, const QStyleOptionViewItem& opti
 
     // BEGIN: horizontal line
     {
-        penColor.setAlphaF(0.05);
+        penColor.setAlphaF(0.05f);
         pen.setColor(penColor);
         painter->setPen(pen);
         // startPoint is left + arrow + text + space
-        const int startPoint =
-            optRect.left() + fontMetrics.height() + fontMetrics.size(Qt::AlignLeft | Qt::AlignVCenter, textToDraw).width() + 20;
+        const int startPoint = optRect.left() + fontMetrics.height() +
+                               fontMetrics.size(Qt::AlignLeft | Qt::AlignVCenter, textToDraw).width() + 20 + (hasIcon ? iconSize + 3 : 0);
         painter->setRenderHint(QPainter::Antialiasing, false);
         QPolygon polygon;
         // for some reason the height (yPos) doesn't look centered, so we are adding 1 to the center height

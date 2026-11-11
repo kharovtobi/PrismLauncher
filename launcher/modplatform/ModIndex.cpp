@@ -25,13 +25,13 @@
 
 namespace ModPlatform {
 
-static const QMap<QString, IndexedVersionType::VersionType> s_indexed_version_type_names = {
-    { "release", IndexedVersionType::VersionType::Release },
-    { "beta", IndexedVersionType::VersionType::Beta },
-    { "alpha", IndexedVersionType::VersionType::Alpha }
-};
+ModLoaderType operator|(ModLoaderType lhs, ModLoaderType rhs)
+{
+    return static_cast<ModLoaderType>(static_cast<std::uint16_t>(lhs) | static_cast<std::uint16_t>(rhs));
+}
 
-static const QList<ModLoaderType> loaderList = { NeoForge, Forge, Cauldron, LiteLoader, Quilt, Fabric, Babric, BTA };
+static const QList<ModLoaderType> loaderList = { NeoForge, Forge, Cauldron,     LiteLoader, Quilt, Fabric,
+                                                 Babric,   BTA,   LegacyFabric, Ornithe,    Rift };
 
 QList<ModLoaderType> modLoaderTypesToList(ModLoaderTypes flags)
 {
@@ -42,34 +42,6 @@ QList<ModLoaderType> modLoaderTypesToList(ModLoaderTypes flags)
         }
     }
     return flagList;
-}
-
-IndexedVersionType::IndexedVersionType(const QString& type) : IndexedVersionType(enumFromString(type)) {}
-
-IndexedVersionType::IndexedVersionType(const IndexedVersionType::VersionType& type)
-{
-    m_type = type;
-}
-
-IndexedVersionType::IndexedVersionType(const IndexedVersionType& other)
-{
-    m_type = other.m_type;
-}
-
-IndexedVersionType& IndexedVersionType::operator=(const IndexedVersionType& other)
-{
-    m_type = other.m_type;
-    return *this;
-}
-
-const QString IndexedVersionType::toString(const IndexedVersionType::VersionType& type)
-{
-    return s_indexed_version_type_names.key(type, "unknown");
-}
-
-IndexedVersionType::VersionType IndexedVersionType::enumFromString(const QString& type)
-{
-    return s_indexed_version_type_names.value(type, IndexedVersionType::VersionType::Unknown);
 }
 
 const char* ProviderCapabilities::name(ResourceProvider p)
@@ -122,7 +94,7 @@ auto getModLoaderAsString(ModLoaderType type) -> const QString
         case Cauldron:
             return "cauldron";
         case LiteLoader:
-             return "liteloader";
+            return "liteloader";
         case Fabric:
             return "fabric";
         case Quilt:
@@ -133,6 +105,12 @@ auto getModLoaderAsString(ModLoaderType type) -> const QString
             return "babric";
         case BTA:
             return "bta-babric";
+        case LegacyFabric:
+            return "legacy-fabric";
+        case Ornithe:
+            return "ornithe";
+        case Rift:
+            return "rift";
         default:
             break;
     }
@@ -157,32 +135,13 @@ auto getModLoaderFromString(QString type) -> ModLoaderType
         return Babric;
     if (type == "bta-babric")
         return BTA;
+    if (type == "legacy-fabric")
+        return LegacyFabric;
+    if (type == "ornithe")
+        return Ornithe;
+    if (type == "rift")
+        return Rift;
     return {};
 }
 
-QString SideUtils::toString(Side side)
-{
-    switch (side) {
-        case Side::ClientSide:
-            return "client";
-        case Side::ServerSide:
-            return "server";
-        case Side::UniversalSide:
-            return "both";
-        case Side::NoSide:
-            break;
-    }
-    return {};
-}
-
-Side SideUtils::fromString(QString side)
-{
-    if (side == "client")
-        return Side::ClientSide;
-    if (side == "server")
-        return Side::ServerSide;
-    if (side == "both")
-        return Side::UniversalSide;
-    return Side::UniversalSide;
-}
 }  // namespace ModPlatform

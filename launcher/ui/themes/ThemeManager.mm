@@ -20,7 +20,7 @@
 
 #include <AppKit/AppKit.h>
 
-void ThemeManager::setTitlebarColorOnMac(WId windowId, QColor color)
+void ThemeManager::setTitlebarColorOnMac(WId windowId, const QColor& color)
 {
     if (windowId == 0) {
         return;
@@ -28,21 +28,17 @@ void ThemeManager::setTitlebarColorOnMac(WId windowId, QColor color)
 
     NSView* view = (NSView*)windowId;
     NSWindow* window = [view window];
+    // Only apply effects to windows with a title bar, else child dialogs that aren't meant to have one (like AppKit) break
+    // https://github.com/PrismLauncher/PrismLauncher/issues/6441
+    if ((window.styleMask & NSWindowStyleMaskTitled) == 0) {
+        return;
+    }
     window.titlebarAppearsTransparent = YES;
     window.backgroundColor = [NSColor colorWithRed:color.redF() green:color.greenF() blue:color.blueF() alpha:color.alphaF()];
 
-    // Unfortunately there seems to be no easy way to set the titlebar text color.
-    // The closest we can do without dubious hacks is set the dark/light mode state based on the brightness of the
-    // background color, which should at least make the text readable even if we can't use the theme's text color.
-    // It's a good idea to set this anyway since it also affects some other UI elements like text shadows (PrismLauncher#3825).
-    if (color.lightnessF() < 0.5) {
-        window.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
-    } else {
-        window.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
-    }
 }
 
-void ThemeManager::setTitlebarColorOfAllWindowsOnMac(QColor color)
+void ThemeManager::setTitlebarColorOfAllWindowsOnMac(const QColor& color)
 {
     NSArray<NSWindow*>* windows = [NSApp windows];
     for (NSWindow* window : windows) {

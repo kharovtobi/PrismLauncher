@@ -49,27 +49,43 @@
 #include "java/JavaVersion.h"
 #include "java/download/ArchiveDownloadTask.h"
 #include "java/download/ManifestDownloadTask.h"
-#include "java/download/SymlinkTask.h"
 #include "meta/Index.h"
 #include "minecraft/MinecraftInstance.h"
 #include "minecraft/PackProfile.h"
 #include "net/Mode.h"
+#if defined(Q_OS_MACOS)
+#include "java/download/SymlinkTask.h"
 #include "tasks/SequentialTask.h"
-
+#endif
 AutoInstallJava::AutoInstallJava(LaunchTask* parent)
     : LaunchStep(parent), m_instance(m_parent->instance()), m_supported_arch(SysInfo::getSupportedJavaArchitecture()) {};
 
 void AutoInstallJava::executeTask()
 {
-    auto settings = m_instance->settings();
+    auto* settings = m_instance->settings();
     if (!APPLICATION->settings()->get("AutomaticJavaSwitch").toBool() ||
         (settings->get("OverrideJavaLocation").toBool() && QFileInfo::exists(settings->get("JavaPath").toString()))) {
         emitSucceeded();
         return;
     }
-    auto packProfile = m_instance->getPackProfile();
+    auto* packProfile = m_instance->getPackProfile();
+    // java installations the user pinned to a specific major in the global settings win over
+    // both the detected installations and the Mojang downloads
+    for (int major : packProfile->getProfile()->getCompatibleJavaMajors()) {
+        auto pinned = JavaUtils::getPinnedPath(major);
+        if (pinned.isEmpty()) {
+            continue;
+        }
+        auto resolved = FS::ResolveExecutable(pinned);
+        if (resolved.isNull()) {
+            emit logLine(tr("The Java %1 path pinned in the settings does not exist: %2").arg(major).arg(pinned), MessageLevel::Warning);
+            continue;
+        }
+        setJavaPath(resolved);
+        return;
+    }
     if (!APPLICATION->settings()->get("AutomaticJavaDownload").toBool()) {
-        auto javas = APPLICATION->javalist();
+        auto* javas = APPLICATION->javalist();
         m_current_task = javas->getLoadTask();
         connect(m_current_task.get(), &Task::finished, this, [this, javas, packProfile] {
             for (auto i = 0; i < javas->count(); i++) {
@@ -109,7 +125,8 @@ void AutoInstallJava::executeTask()
         return;
     }
     QDir javaDir(APPLICATION->javaPath());
-    auto wantedJavaPath = javaDir.absoluteFilePath(wantedJavaName);
+    auto relativeBinary = FS::PathCombine(wantedJavaName, "bin", JavaUtils::javaExecutable);
+    auto wantedJavaPath = javaDir.absoluteFilePath(relativeBinary);
     if (QFileInfo::exists(wantedJavaPath)) {
         setJavaPathFromPartial();
         return;
@@ -130,7 +147,7 @@ void AutoInstallJava::executeTask()
 
 void AutoInstallJava::setJavaPath(QString path)
 {
-    auto settings = m_instance->settings();
+    auto* settings = m_instance->settings();
     settings->set("OverrideJavaLocation", true);
     settings->set("JavaPath", path);
     settings->set("AutomaticJava", true);
@@ -140,7 +157,7 @@ void AutoInstallJava::setJavaPath(QString path)
 
 void AutoInstallJava::setJavaPathFromPartial()
 {
-    auto packProfile = m_instance->getPackProfile();
+    auto* packProfile = m_instance->getPackProfile();
     auto javaName = packProfile->getProfile()->getCompatibleJavaName();
     QDir javaDir(APPLICATION->javaPath());
     // just checking if the executable is there should suffice
@@ -155,39 +172,39 @@ void AutoInstallJava::setJavaPathFromPartial()
                      MessageLevel::Warning);
         emitSucceeded();
     }
-    return;
 }
 
 void AutoInstallJava::downloadJava(Meta::Version::Ptr version, QString javaName)
 {
     auto runtimes = version->data()->runtimes;
-    for (auto java : runtimes) {
+    for (const auto& java : runtimes) {
         if (java->runtimeOS == m_supported_arch && java->name() == javaName) {
             QDir javaDir(APPLICATION->javaPath());
-            auto final_path = javaDir.absoluteFilePath(java->m_name);
+            auto finalPath = javaDir.absoluteFilePath(java->m_name);
+            auto deletePath = [finalPath] { FS::deletePath(finalPath); };
             switch (java->downloadType) {
                 case Java::DownloadType::Manifest:
-                    m_current_task = makeShared<Java::ManifestDownloadTask>(java->url, final_path, java->checksumType, java->checksumHash);
+                    m_current_task = makeShared<Java::ManifestDownloadTask>(java->url, finalPath, java->checksumType, java->checksumHash);
                     break;
                 case Java::DownloadType::Archive:
-                    m_current_task = makeShared<Java::ArchiveDownloadTask>(java->url, final_path, java->checksumType, java->checksumHash);
+                    m_current_task = makeShared<Java::ArchiveDownloadTask>(java->url, finalPath, java->checksumType, java->checksumHash);
                     break;
                 case Java::DownloadType::Unknown:
+                    deletePath();
                     emitFailed(tr("Could not determine Java download type!"));
                     return;
             }
 #if defined(Q_OS_MACOS)
             auto seq = makeShared<SequentialTask>(tr("Install Java"));
             seq->addTask(m_current_task);
-            seq->addTask(makeShared<Java::SymlinkTask>(final_path));
+            seq->addTask(makeShared<Java::SymlinkTask>(finalPath));
             m_current_task = seq;
 #endif
-            auto deletePath = [final_path] { FS::deletePath(final_path); };
-            connect(m_current_task.get(), &Task::failed, this, [this, deletePath](QString reason) {
+            connect(m_current_task.get(), &Task::failed, this, [this, deletePath](const QString& reason) {
                 deletePath();
                 emitFailed(reason);
             });
-            connect(m_current_task.get(), &Task::aborted, this, [deletePath] { deletePath(); });
+            connect(m_current_task.get(), &Task::aborted, this, deletePath);
             connect(m_current_task.get(), &Task::succeeded, this, &AutoInstallJava::setJavaPathFromPartial);
             connect(m_current_task.get(), &Task::failed, this, &AutoInstallJava::tryNextMajorJava);
             connect(m_current_task.get(), &Task::progress, this, &AutoInstallJava::setProgress);
@@ -203,10 +220,11 @@ void AutoInstallJava::downloadJava(Meta::Version::Ptr version, QString javaName)
 
 void AutoInstallJava::tryNextMajorJava()
 {
-    if (!isRunning())
+    if (!isRunning()) {
         return;
+    }
     auto versionList = APPLICATION->metadataIndex()->get("net.minecraft.java");
-    auto packProfile = m_instance->getPackProfile();
+    auto* packProfile = m_instance->getPackProfile();
     auto wantedJavaName = packProfile->getProfile()->getCompatibleJavaName();
     auto majorJavaVersions = packProfile->getProfile()->getCompatibleJavaMajors();
     if (m_majorJavaVersionIndex >= majorJavaVersions.length()) {
@@ -242,7 +260,7 @@ bool AutoInstallJava::abort()
 {
     if (m_current_task && m_current_task->canAbort()) {
         auto status = m_current_task->abort();
-        emitFailed("Aborted.");
+        emitAborted();
         return status;
     }
     return Task::abort();
